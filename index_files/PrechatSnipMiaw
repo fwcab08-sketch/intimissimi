@@ -1,0 +1,781 @@
+window._snapinsSnippetSettingsFile = (function() {
+
+    /************************* CONSTANTS AND GLOBAL VAR ****************************************/
+
+    //get params
+    var objectSettingParams = embedded_svc.menu.chat.settings;
+
+    var isAgentforce = false;
+
+    var styleCtaMessaging;
+
+    var siteUrlEmbedded;
+
+    var cmpHeight = 520;
+
+    var positionChatSetted = false;
+
+    //get configuration menu
+    var menuSettings = embedded_svc.menu.settings;
+    //menuSettings.devMode = false;
+
+    var prevEntryType;
+
+
+    //version for supported IE
+    var isMobile = new RegExp('(?:^|\\s)Android', 'i').test(navigator.userAgent) || new RegExp('(?:^|\\s)Mobile', 'i').test(navigator.userAgent) || new RegExp('(?:^|\\s)iOS', 'i').test(navigator.userAgent);
+
+    //for test only
+    if (objectSettingParams.paramIsMobileForced) {
+        isMobile = true;
+    }
+
+
+    if (objectSettingParams.paramDebug) {
+        console.log("Snippet settings file loaded."); // Logs that the snippet settings file was loaded successfully
+        console.log('isMobile: ' + isMobile);
+    }
+
+
+    var origin = isMobile ? 'Chat Mobile' : 'Chat';
+
+    if (objectSettingParams.paramOrigin) {
+        origin = objectSettingParams.paramOrigin;
+    }
+
+
+    var brandMap = {
+        "01": "Calzedonia",
+        "02": "Intimissimi",
+        "03": "Tezenis",
+        "05": "Falconeri",
+        "06": "Signorvino",
+        "07": "Ateliereme"
+    };
+
+    // map of chat component Height by brand
+    var brandHeightChatCmpMap = {
+        "01": 520,
+        "02": 408,
+        "03": 520,
+        "05": 520,
+        "06": 520,
+        "07": 520
+    };
+
+
+    // Code Brand
+    var brandCode = '';
+
+    if (objectSettingParams.paramBrand) {
+        brandCode = objectSettingParams.paramBrand;
+        cmpHeight = brandHeightChatCmpMap[brandCode];
+    }
+
+    if (objectSettingParams.paramDebug) {
+        console.log('external script embedded_svc pre set value: ' + JSON.stringify(embedded_svc));
+    }
+
+    // Name agentforce order item
+    const AGENT_FORCE_ITEM_NAME = 'agentforce';
+
+
+    /************************* FUNCTIONS ****************************************/
+
+    //set visible to elemen
+    function setElementVisible(elemEmb) {
+
+        if (elemEmb.classList.contains('embedded-serviceHidden')) {
+            elemEmb.classList.remove('embedded-serviceHidden');
+        }
+        elemEmb.classList.add('embedded-serviceActive');
+    }
+
+    //set hidden to elemen
+    function setElementHidden(elemEmb) {
+
+        if (elemEmb.classList.contains('embedded-serviceActive')) {
+            elemEmb.classList.remove('embedded-serviceActive');
+        }
+        elemEmb.classList.add('embedded-serviceHidden');
+    }
+
+
+    //this function close channel menu when the agentforce is opened
+    function initChannelMenu() {
+        let animationMenuElements = [
+            document.getElementById("esw-channelmenu"),
+            document.getElementById("esw-channelmenu_header"),
+            document.getElementById("esw-channelmenu_ctas"),
+            document.getElementById("esw-fab")
+        ];
+        let modalOver = document.getElementById("esw-modaloverlay");
+        let elemMenu = document.getElementById("esw-channelmenu");
+
+        let elemIconMenuOpened = document.getElementById("esw-menu-opened-fab-icon");
+        let elemIconMenuClosed = document.getElementById("esw-menu-closed-fab-icon");
+
+        animationMenuElements.forEach(elem => {
+            if (elem) {
+                if (elem.classList.contains('showAnimation')) {
+                    elem.classList.remove('showAnimation');
+                }
+                elem.classList.add('hideAnimation');
+            }
+        });
+
+        if (elemMenu) {
+            elemMenu.removeAttribute('style');
+            elemMenu.style.cssText = 'visibility: hidden;';
+        }
+
+        if (modalOver && modalOver.classList.contains('isMaximized')) {
+            modalOver.classList.remove('isMaximized');
+        }
+
+        if (elemIconMenuOpened && elemIconMenuClosed) {
+            elemIconMenuOpened.removeAttribute('style');
+            elemIconMenuClosed.removeAttribute('style');
+            elemIconMenuClosed.style.cssText = 'display: inline-block;';
+            elemIconMenuOpened.style.cssText = 'display: none;';
+        }
+
+    }
+
+
+    //this function manage app  chat button
+    function launchAppChat() {
+
+        embeddedservice_bootstrap.utilAPI.launchChat()
+
+            .then(() => {
+                if (objectSettingParams.paramDebug) {
+                    console.log('launchAppChat');
+                }
+            }).catch(() => {
+                if (objectSettingParams.paramDebug) {
+                    console.log('launchAppChat error');
+                }
+            }).finally(() => {
+                if (objectSettingParams.paramDebug) {
+                    console.log('launchAppChat finally');
+                }
+            });
+
+    }
+
+
+
+    //this function manage agent force chat button
+    function launchAgentForceChat() {
+
+        let elemEmb = document.getElementById("embedded-service");
+        initChannelMenu();
+        if (elemEmb) {
+            setElementHidden(elemEmb);
+        }
+
+        //connect observer for detect agent force component closed
+        connectObserver();
+
+        let msgOrigin = isMobile ? 'Mobile Agentforce' : 'Agentforce';
+
+        //Set prechat values for visibles fields
+        embeddedservice_bootstrap.prechatAPI.setVisiblePrechatFields({
+            "paramName": {
+                "value": objectSettingParams.paramName,
+                "isEditableByEndUser": true
+            },
+            "paramMail": {
+                "value": objectSettingParams.paramMail,
+                "isEditableByEndUser": true
+            },
+            "paramOrigin": {
+                "value": msgOrigin,
+                "isEditableByEndUser": false
+            }
+
+        });
+
+        /*Set hidden prechat values
+        embeddedservice_bootstrap.prechatAPI.setHiddenPrechatFields({
+            "paramCountry": objectSettingParams.paramCountry,
+            "paramBrand": objectSettingParams.paramBrand,
+            "paramLanguage": langCurr,
+            "paramOrigin": msgOrigin
+        });*/
+
+        embeddedservice_bootstrap.utilAPI.launchChat()
+
+            .then(() => {
+
+                // Success handler used to perform actions
+                // when the chat client launches successfully.
+                // For example, create a method that disables the launch chat button.
+                if (objectSettingParams.paramDebug) {
+                    console.log('launchAgentForceChat');
+                }
+
+            }).catch(() => {
+                // Error handler used to perform actions
+                // if the chat client fails to launch.
+                // For example, create a method that hides the launch chat button.
+                if (elemEmb) {
+                    setElementVisible(elemEmb);
+                }
+                if (objectSettingParams.paramDebug) {
+                    console.log('launchAgentForceChat error');
+                }
+
+            }).finally(() => {
+                // Finally handler used to perform any clean-up actions
+                // regardless of whether the chat client launches successfully or not.
+                // For example, create a method that logs the user’s attempt to chat.
+                if (objectSettingParams.paramDebug) {
+                    console.log('launchAgentForceChat finally');
+                }
+                isAgentforce = false;
+            });
+    }
+
+
+    /************************* EVENT LISTNERS ****************************************/
+
+    /*if (brandCode === '05') {
+        var scrollInit = 0;
+        document.addEventListener('scroll',
+            (event) => {
+                if (document.getElementById("embedded-service")) {
+                    let elemEmb = document.getElementById("embedded-service");
+                    if (scrollInit < window.scrollY) {
+                        if (objectSettingParams.paramDebug) console.log('is scroll down - active menu');
+                        setElementVisible(elemEmb);
+                    } else if (scrollInit != window.scrollY) {
+                        let isMenuVisible = document.getElementById("esw-channelmenu") && document.getElementById("esw-channelmenu").classList.contains('showAnimation');
+                        if (!isMenuVisible) {
+                            setElementHidden(elemEmb);
+                        }
+                        if (objectSettingParams.paramDebug) console.log('is scroll up - isMenuVisible: ' + isMenuVisible);
+                    }
+                }
+                scrollInit = window.scrollY;
+            },
+            {passive: true}
+        );
+    }*/
+
+    //add listner miaw for  manage component ready
+    window.addEventListener("onEmbeddedMessagingReady", handleEmbeddedMessagingReady, { passive: true });
+
+    //handle onEmbeddedMessagingReady
+    function handleEmbeddedMessagingReady(event) {
+
+        //if for other pages the button is different
+        embeddedservice_bootstrap.settings.restrictSessionOnMessagingChannel = true;
+
+        embeddedservice_bootstrap.settings.omitSandbox = true;
+
+        embeddedservice_bootstrap.settings.language = langCurr;
+
+        embeddedservice_bootstrap.settings.hideChatButtonOnLoad = false;
+
+        //embeddedservice_bootstrap.settings.hasBottomTabBar = true;
+
+        embeddedservice_bootstrap.settings.enableUserInputForConversationWithBot = false;
+
+        //embeddedservice_bootstrap.settings.shouldShowParticipantChgEvntInConvHist = false;
+
+        embeddedservice_bootstrap.settings.shouldOpenLinksInSameTab = true;
+
+        if (localStorage.getItem("initMsgComponent")) {
+
+            if (objectSettingParams.paramDebug) console.log("clear msg session");
+            localStorage.removeItem("initMsgComponent");
+            embeddedservice_bootstrap.userVerificationAPI.clearSession(true);
+        }
+
+
+        //Set prechat values for visibles fields
+        embeddedservice_bootstrap.prechatAPI.setVisiblePrechatFields({
+            "paramName": {
+                "value": objectSettingParams.paramName,
+                "isEditableByEndUser": true
+            },
+            "paramMail": {
+                "value": objectSettingParams.paramMail,
+                "isEditableByEndUser": true
+            },
+            "paramCountry": {
+                "value": objectSettingParams.paramCountry,
+                "isEditableByEndUser": false
+            },
+            "paramBrand": {
+                "value": objectSettingParams.paramBrand,
+                "isEditableByEndUser": false
+            },
+            "paramLanguage": {
+                "value": langCurr,
+                "isEditableByEndUser": false
+            },
+            "paramOrigin": {
+                "value": origin,
+                "isEditableByEndUser": false
+            },
+            "paramSiteUrl": {
+                "value": siteUrlEmbedded,
+                "isEditableByEndUser": false
+            }
+        });
+
+        /*Set hidden prechat values
+        embeddedservice_bootstrap.prechatAPI.setHiddenPrechatFields({
+            "paramCountry": objectSettingParams.paramCountry,
+            "paramBrand": objectSettingParams.paramBrand,
+            "paramLanguage": langCurr,
+            "paramOrigin": origin
+        });*/
+
+        /* get business hours
+            getBusinessHours();
+        */
+
+        if (!objectSettingParams.msgCompIsLoad && idItemAgentForce) {
+            //connect observer for detect agent force component closed
+            connectObserver();
+            objectSettingParams.msgCompIsLoad = 'messagingIsLoaded';
+        }
+
+        if (objectSettingParams.paramDebug) {
+            console.log('onEmbeddedMessagingReady event was fired to window');
+            console.log('onEmbeddedMessagingReady event : ' + JSON.stringify(event.detail));
+        }
+
+        if (origin.includes('App')) { launchAppChat(); }
+
+    }
+
+    /** for init manage view item **/
+    window.addEventListener("onEmbeddedMessagingChannelMenuVisibilityChanged", (event) => {
+        if (objectSettingParams.paramDebug) {
+            console.log("Received the onEmbeddedMessagingChannelMenuVisibilityChanged event…");
+            console.log("Event detail: ", event.detail);
+        }
+
+        if (!event.detail.isVisible) {
+            event.detail.isVisible = true;
+            event.detail.isReload = true;
+            const eventRefired = new CustomEvent('onEmbeddedMessagingChannelMenuVisibilityChanged', event);
+            window.dispatchEvent(eventRefired);
+        } else if (event.detail && event.detail.isReload) {
+            styleCtaMessaging = document.createElement('style');
+            styleCtaMessaging.innerHTML += ' .cta-embeddedmessaging {opacity: 0.5 !important;pointerEvents: none !important;}';
+            styleCtaMessaging.innerHTML += ' .cta-link-embeddedmessaging {pointer-events:none !important;}';
+            document.head.appendChild(styleCtaMessaging);
+
+        } else if (styleCtaMessaging) {
+            if (objectSettingParams.paramDebug) {
+                console.log("style styleCtaMessaging remove");
+            }
+            styleCtaMessaging.remove();
+        }
+    });
+
+    window.addEventListener("onEmbeddedMessagingButtonCreated", positionChatMessage);
+    window.addEventListener("onEmbeddedMessageSent", checkIfCleanSession);
+    window.addEventListener("onEmbeddedMessagingConversationRouted", checkIfCleanSession);
+    window.addEventListener("onEmbeddedMessagingConversationParticipantChanged", checkIfCleanSession);
+
+    window.addEventListener("onEmbeddedMessagingWindowMaximized", handleMessagingMaximize);
+
+    if (objectSettingParams.paramDebug) {
+        window.addEventListener("onEmbeddedMessagingConversationClosed", handleLogEvent);
+        window.addEventListener("onEmbeddedMessagingConversationOpened", handleLogEvent);
+        window.addEventListener("onEmbeddedMessagingConversationStarted", handleLogEvent);
+
+        window.addEventListener("onEmbeddedMessagingBusinessHoursStarted", handleLogEvent);
+        window.addEventListener("onEmbeddedMessagingBusinessHoursEnded", handleLogEvent);
+        window.addEventListener("onEmbeddedMessageDelivered", handleLogEvent);
+    }
+
+    function handleMessagingMaximize(event){
+
+        if (origin.includes('App')) {
+            let elemEmb = document.getElementById("embedded-service");
+            initChannelMenu();
+            if (elemEmb) {
+                setElementHidden(elemEmb);
+            }
+            elemEmb = document.getElementById("esw-fab");
+            if (elemEmb) {
+                elemEmb.style.cssText = 'display: none !important;';
+            }
+        }
+        handleLogEvent(event);
+    }
+
+
+    function checkIfCleanSession(event) {
+        if (objectSettingParams.paramDebug) console.log('called checkIfCleanSession');
+        let cEntry = event.detail && event.detail.conversationEntry ? event.detail && event.detail.conversationEntry : '';
+
+        let payloadObj = cEntry && cEntry.entryPayload ? JSON.parse(cEntry.entryPayload) : '';
+
+        let isRouting = payloadObj && 'System' == cEntry.sender.role && 'RoutingResult' == payloadObj.entryType;
+
+        let isErrorRouting = isRouting && 'RoutingError' == payloadObj.failureType;
+
+        let isPostchatSurvey = payloadObj && 'System' == cEntry.sender.role && payloadObj.abstractMessage && payloadObj.abstractMessage.staticContent
+            && 'StaticContentMessage' == payloadObj.abstractMessage.messageType && payloadObj.abstractMessage.staticContent
+            && payloadObj.abstractMessage.staticContent.title && payloadObj.abstractMessage.staticContent.title.title.includes('Survey post chat');
+
+        let isPartecipant = payloadObj && 'System' == cEntry.sender.role && 'ParticipantChanged' == payloadObj.entryType && payloadObj.entries;
+
+        let isPartRemove = isPartecipant && 'remove' == payloadObj.entries[0].operation && 'RoutingResult' != prevEntryType;
+
+        let isMessageCS =  payloadObj && 'System' != cEntry.sender.role && 'EndUser' != cEntry.sender.role;
+
+        if (isErrorRouting || isPostchatSurvey || isPartRemove) {
+            if (objectSettingParams.paramDebug) {
+                if (isPostchatSurvey) console.log('is post chat');
+                if (isErrorRouting) console.log('is routing error');
+                if (isPartRemove) console.log('is remove partecipant');
+            }
+            localStorage.setItem("initMsgComponent", "true");
+            prevEntryType = payloadObj.entryType;
+        } else if ((isPartecipant && 'add' == payloadObj.entries[0].operation) || isMessageCS || isRouting) {
+            localStorage.removeItem("initMsgComponent");
+            prevEntryType = payloadObj.entryType;
+            if (objectSettingParams.paramDebug) console.log('is add partecipant');
+        }
+        handleLogEvent(event);
+    }
+
+    function positionChatMessage() {
+
+        if (positionChatSetted) {
+            if (objectSettingParams.paramDebug) console.log('positionChatSetted ');
+            return;
+        }
+
+        if (origin.includes('App')) {
+            if (objectSettingParams.paramDebug) console.log('positionChatMessage for app ');
+            var styleEmbApp = document.createElement('style');
+            styleEmbApp.innerHTML = '@media (max-width: 1024px) { .embedded-messaging > .embeddedMessagingFrame[class~="isMaximized"]{width: 100% !important;max-width: 100% !important;height: 100% !important;max-height: 100% !important;right: 0 !important;left: 0 !important;bottom: 0 !important;top: 0 !important;margin: 0 !important;}} ';
+            styleEmbApp.innerHTML += '.embedded-service .fab{display:none !important;}';
+            document.head.appendChild(styleEmbApp);
+            return;
+        }
+
+        let styleIconMenu = document.getElementById("esw-fab");
+        let stylesTags = document.querySelectorAll('head style');
+
+        if (styleIconMenu) {
+            let completeStyleItem = window.getComputedStyle(styleIconMenu);
+
+            if (!styleEmb) {
+                var styleEmb = document.createElement('style');
+            }
+            if (styleEmb) {
+                positionChatSetted = true;
+                //messagging in web minized/loading icon
+                let topIconValue = !completeStyleItem.getPropertyValue('top') ? NaN : parseInt(completeStyleItem.getPropertyValue('top'));
+                let bottomIconValue = !completeStyleItem.getPropertyValue('bottom') ? NaN : parseInt(completeStyleItem.getPropertyValue('bottom'));
+                let rightIconValue = !completeStyleItem.getPropertyValue('right') ? NaN : parseInt(completeStyleItem.getPropertyValue('right'));
+
+                let topIcon = !completeStyleItem.getPropertyValue('top') || isNaN(topIconValue) ? '' : 'top: ' + topIconValue + 'px !important;';
+                let bottomIcon = !completeStyleItem.getPropertyValue('bottom') || isNaN(bottomIconValue) ? '' : 'bottom: ' + bottomIconValue + 'px !important;';
+                let rightIcon = !completeStyleItem.getPropertyValue('right') || isNaN(rightIconValue) ? '' : 'right: ' + rightIconValue + 'px !important;';
+                let zValue = !completeStyleItem.getPropertyValue('z-index') ? 0 : parseInt(completeStyleItem.getPropertyValue('z-index'), 0);
+
+                if (!isNaN(zValue)) {
+                    zValue += 1;
+                }
+                let zIndexIcon = !completeStyleItem.getPropertyValue('z-index') || isNaN(zValue) ? '' : 'z-index: ' + zValue + '!important;';
+
+                styleEmb.innerHTML += ' .embedded-messaging > .embeddedMessagingFrame[class~="isMinimized"], .embedded-messaging .embeddedMessagingConversationButton '
+                    + '{' + topIcon + bottomIcon + rightIcon + zIndexIcon + '}';
+
+                //Set style chat container from old style
+                let propertyStyleContainer;
+                let propertyStyleContainerFromMenu;
+                stylesTags.forEach(function(styleElement) {
+                    let styleRoles = styleElement.sheet.cssRules || styleElement.sheet.rules;
+                    for (let j = 0; j < styleRoles.length; j++) {
+                        let selectorChatComp = '.embeddedServiceSidebar.layout-float .dockableContainer';
+                        //let selectMenuComp = '.embedded-service .channelmenu';
+                        let indexStart;
+                        let indexEnd;
+                        if (styleRoles[j].selectorText === selectorChatComp) {
+                            indexStart = styleRoles[j].cssText.indexOf('{');
+                            indexEnd = styleRoles[j].cssText.indexOf('}') + 1;
+                            if (indexStart > 0 && indexStart < indexEnd) {
+                                propertyStyleContainer = styleRoles[j].cssText.slice(indexStart, indexEnd).trim();
+                            }
+                        }
+                    }
+                });
+
+                if (!propertyStyleContainer && propertyStyleContainerFromMenu) {
+                    propertyStyleContainer = propertyStyleContainerFromMenu;
+                    if (objectSettingParams.paramDebug) {
+                        console.log('set position component from menu');
+                    }
+                }
+
+                if (propertyStyleContainer) {
+
+                    // set position from old chat class style css
+                    styleEmb.innerHTML += ' .embedded-messaging > .embeddedMessagingFrame[class~="isMaximized"]' + propertyStyleContainer;
+                } else if (!isMobile) {
+                    // get position from minimize icon only for desktop
+                    let topPosCmp = '';
+                    let bottomPosCmp = '';
+                    let rightPosCmp = '';
+                    if (!isNaN(topIconValue)) {
+
+                        let valueTop = cmpHeight < topIconValue ? (topIconValue - cmpHeight) : topIconValue < 50 ? (topIconValue + 60) : topIconValue;
+                        topPosCmp = 'top: ' + valueTop + 'px !important;';
+                    }
+                    if (!isNaN(bottomIconValue)) {
+                        bottomPosCmp = 'bottom: ' + bottomIconValue + 'px !important;';
+                    }
+                    if (!isNaN(rightIconValue)) {
+                        rightIconValue = rightIconValue < 16 ? 16 : rightIconValue;
+                        rightPosCmp = 'right: ' + rightIconValue + 'px !important;';
+                    }
+
+                    if (objectSettingParams.paramDebug) console.log('set position from minimize icon: {' + topPosCmp + ' ' + bottomPosCmp + ' ' + rightPosCmp + ' ' + zIndexIcon + '}');
+
+                    styleEmb.innerHTML += ' .embedded-messaging > .embeddedMessagingFrame[class~="isMaximized"] {' + topPosCmp + bottomPosCmp + rightPosCmp + zIndexIcon + '}';
+                }
+
+                //accessibility element
+                let ae_launcher = document.getElementById('ae_launcher');
+                if (isMobile && ae_launcher) {
+                    styleEmb.innerHTML += ' .conversationState.footerItemsContainer[lwc-64sju2rf0mv], .footerItemsContainer.footerItemsContainer {width: max-content !important;}';
+                    styleEmb.innerHTML += ' .embeddedMessagingInputTextAreaWrapper.slds-p-around_small .embeddedMessagingSendButtonWrapper{margin-right: 19% !important;padding-bottom: 1px !important;}';
+                }
+
+                document.head.appendChild(styleEmb);
+
+                if (objectSettingParams.paramDebug) {
+                    console.log('style icon:' + topIcon + bottomIcon + rightIcon + zIndexIcon);
+
+                    if (propertyStyleContainer) {
+                        console.log('propertyStyleContainer:' + propertyStyleContainer);
+                    }
+
+                }
+            } else if (objectSettingParams.paramDebug) {
+                console.log('no position style founded');
+            }
+        }
+    }
+
+
+    function handleLogEvent(event) {
+        if (objectSettingParams.paramDebug) {
+            console.log("Received the " + event.type + " event");
+            console.log("Event detail: ", event.detail);
+        }
+    }
+
+    // create listner click for items agentforce miaw
+    function addListenerClickForAgentForce() {
+        document.addEventListener('click', handleAgentForceClick, { passive: true });
+    }
+
+    //remove listner click for items agentforce miaw
+    function removeListenerClickForAgentForce() {
+        document.removeEventListener('click', handleAgentForceClick);
+    }
+
+    // listner click agentforce handle miaw
+    function handleAgentForceClick(event) {
+        /*if(objectSettingParams.paramDebug) {
+            console.log('event.target.id: ', event.target.id);
+            console.log('idItemAgentForce: ', idItemAgentForce);
+        }*/
+        if (idItemAgentForce && event.target.id.includes(idItemAgentForce)) {
+            if (objectSettingParams.paramDebug) {
+                console.log('call show agent force');
+            }
+            isAgentforce = true;
+            launchAgentForceChat();
+        }
+    }
+
+    // connect observerMessaging to document.body for agentforce miaw
+    function connectObserver() {
+        disconnectObserver();
+        observerMessaging.observe(document.body, { childList: true });
+        if (objectSettingParams.paramDebug) {
+            console.log('mutation observerMessaging connected');
+        }
+    }
+
+    // connect observerMessaging to document.body for agentforce miaw
+    function disconnectObserver() {
+        observerMessaging.disconnect();
+        if (objectSettingParams.paramDebug) {
+            console.log('mutation observerMessaging disconnect');
+        }
+    }
+
+    //manage observer for agentforce miaw
+    function handleMutations(mutations) {
+        mutations.forEach(mutation => {
+            if (mutation.type === 'childList') {
+                //manage removed nodes
+                for (const node of mutation.removedNodes) {
+                    if (node.id === "embedded-messaging") {
+                        let elemEmb = document.getElementById("embedded-service");
+                        if (elemEmb) {
+                            setElementVisible(elemEmb);
+                            //disconnect  observerMessaging
+                            disconnectObserver();
+                        }
+                        break;
+                    }
+                }
+                //manage added nodes
+                for (const node of mutation.addedNodes) {
+                    if (node.id === "embedded-messaging") {
+                        let elemEmb = document.getElementById("embedded-service");
+                        if (elemEmb) {
+                            setElementHidden(elemEmb);
+                            //disconnect  observerMessaging
+                            //disconnectObserver();
+                        }
+                        break;
+                    }
+                }
+            }
+        });
+    }
+
+
+    /*********************************** INIT CONFIGURATIONS ********************************************/
+
+    //get configuration object
+    //if(!embedded_svc.menu.configuration.ChatButton){
+    //manage case config empty
+    for (let i = 0; i < embedded_svc.menu.menuConfig.menuItems.length; i++) {
+        if (embedded_svc.menu.menuConfig.menuItems[i].iconUrl) {
+            var urlAvatarBase = embedded_svc.menu.menuConfig.menuItems[i].iconUrl;
+            urlAvatarBase = urlAvatarBase.substr(0, urlAvatarBase.lastIndexOf('/') + 1);
+            if (objectSettingParams.paramDebug) {
+                console.log('urlAvatarBase: ' + urlAvatarBase);
+            }
+            break;
+        }
+    }
+
+    // Code Country
+    var country = '';
+    if (objectSettingParams.paramCountry) {
+        country = objectSettingParams.paramCountry;
+    }
+
+
+
+    var nameParam = '';
+    if (objectSettingParams.paramName) {
+        nameParam = objectSettingParams.paramName;
+    }
+
+    var mailParam = '';
+    var isLogged = false;
+    if (objectSettingParams.paramMail) {
+        mailParam = objectSettingParams.paramMail;
+        isLogged = true;
+    }
+
+    var langCurr = menuSettings.language;
+    if (langCurr.includes('-')) {
+        langCurr = langCurr.replace('-', '_');
+    }
+
+    //Set avatar image
+    var imgIdAndNameBot = 'Bot_Avatar';
+    var brandName = brandMap[brandCode];
+
+    if (brandName === "Calzedonia" || brandName === "Intimissimi") {
+        imgIdAndNameBot = brandName + imgIdAndNameBot;
+    } else if (brandName === "Falconeri") {
+        imgIdAndNameBot = '';
+    }
+
+
+
+    var brandStyle = brandName + 'ChatStyle/style.css';
+
+    for (let i = 0; i < embedded_svc.menu.menuConfig.menuItems.length; i++) {
+        let currentItemName = embedded_svc.menu.menuConfig.menuItems[i].name.toLowerCase();
+        let channelType = embedded_svc.menu.menuConfig.menuItems[i].channelType ? embedded_svc.menu.menuConfig.menuItems[i].channelType : 'noType';
+        if (currentItemName.includes(' ')) {
+            currentItemName = currentItemName.toLowerCase().replace(' ', '');
+        }
+        if (currentItemName.includes(AGENT_FORCE_ITEM_NAME) && embedded_svc.menu.menuConfig.menuItems[i].isDisplayedOnPageLoad === true) {
+            if (objectSettingParams.paramDebug) {
+                console.log('current agent Items: ' + JSON.stringify(embedded_svc.menu.menuConfig.menuItems[i]));
+            }
+            embedded_svc.menu.menuConfig.menuItems[i].url = '';
+            var idItemAgentForce = embedded_svc.menu.menuConfig.menuItems[i].id;
+        }
+        if (channelType === 'EmbeddedMessaging') {
+            siteUrlEmbedded = embedded_svc.menu.menuConfig.menuItems[i].siteUrl ? embedded_svc.menu.menuConfig.menuItems[i].siteUrl.replace(/^https?:\/\//, '') : '';
+        }
+
+    }
+
+    //import agent force script and initialize
+    if (idItemAgentForce) {
+        //register listner click on document
+        addListenerClickForAgentForce();
+        //set mutation observer global var for capture div messagging removed or added
+        var observerMessaging = new MutationObserver(handleMutations);
+
+        //set position msg chat for tzn
+        /* if (brandCode === '03') {
+             setPositionMessagingChatTZN();
+         }*/
+    }
+
+
+    //set loader icon
+    /*
+    if(brandName === "Intimissimi"){
+        objectSetting.waitingStateBackgroundImgURL  = urlAvatarBase + brandName +'IconChatLoader';
+    }
+    */
+
+    /*********************************** CUSTOM STYLES ********************************************/
+
+    //*** Create new link style Element **/
+    var link = document.createElement('link');
+    var versioneUrl = '/' + '08072025' + '/'; //Manage static string with date for update one time only when the style is changed
+    link.rel = 'stylesheet';
+    link.type = 'text/css';
+    link.href = urlAvatarBase + versioneUrl + brandStyle;
+    document.head.appendChild(link);
+
+    //*** Create new link style Element for ChatMessage **/
+    var linkMsgStyle = document.createElement('link');
+    var versioneUrl = '/' + '08072025' + '/'; //Manage static string with date for update one time only when the style is changed
+    linkMsgStyle.rel = 'stylesheet';
+    linkMsgStyle.type = 'text/css';
+    linkMsgStyle.href = urlAvatarBase + versioneUrl + 'ChatMessageStyle/style.css';
+    document.head.appendChild(linkMsgStyle);
+
+
+    if (objectSettingParams.paramDebug) {
+        console.log('external script embedded_svc post set value: ' + JSON.stringify(embedded_svc));
+        console.log('loaded style: ' + urlAvatarBase + brandStyle);
+        console.log("Snippet settings end file loaded."); // Logs that the snippet settings file was loaded successfully
+    }
+
+
+
+
+})();

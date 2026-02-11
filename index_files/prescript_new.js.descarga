@@ -1,0 +1,264 @@
+const eventsObject = {
+  onProductFound: () => {
+    let sizeGuideElements = document.querySelectorAll(
+      'button.cc-intProductDetail-size-guide-btn, .cc-sizeSelectorMobile-content-sizeGuide.bg-off-white .cc-intProductDetail-size-guide-btn.linkModalFindYourSize.js-linkModalFindYourSize.js-lazyload.underline'
+    )
+    sizeGuideElements.forEach(function (element) {
+      element.style.display = 'none'
+    })
+  },
+  onAddToCart: ({ size }) => {
+    const isMobile = window.innerWidth <= 768
+    const sizeButtonClass = isMobile
+      ? '.sizebay-js-mobile-size-buttons label'
+      : '.sizebay-js-desktop-size-buttons label'
+    const addToCartButtonClass = isMobile ? '#add-to-cart-cta-pdp' : '.sizebay-js-desktop-add-to-cart-button'
+
+    const pageSize = [...document.querySelectorAll(sizeButtonClass)].find((sizeClick) => {
+      const rawId = sizeClick.id.split('sizebay-').pop().trim().toLowerCase()
+      const normalizedSize = size.trim().toLowerCase()
+
+      if (rawId === normalizedSize) return true
+
+      const letters = normalizedSize.match(/[a-zA-Z]+/)?.[0] || ''
+      const numbers = normalizedSize.match(/\d+/)?.[0] || ''
+      const invertedSize = (numbers + letters).toLowerCase()
+
+      return rawId === invertedSize
+    })
+
+    if (pageSize) {
+      pageSize.querySelector('span').click()
+      if (isMobile) {
+        document
+          .querySelector('.tingle-modal-box__content.cc-sizeSelectorMobile .js-linkMobileModalConfirmSize')
+          .click()
+      }
+
+      const observer = new MutationObserver((mutationsList, observer) => {
+        for (const mutation of mutationsList) {
+          if (mutation.type === 'childList') {
+            const veil = document.querySelector('div.veil:not(.show-for-small-only)')
+            if (!veil) {
+              if (!pageSize.querySelector('.notifyMe')) {
+                document.querySelector(addToCartButtonClass).click()
+              }
+              observer.disconnect()
+            }
+          }
+        }
+      })
+
+      const parentContainer = document.querySelector('body')
+      if (parentContainer) {
+        observer.observe(parentContainer, { childList: true, subtree: true })
+      }
+    }
+  },
+}
+
+const lang = document
+  .querySelector('html')
+  .lang.split('-')
+  .shift()
+  .trim()
+  .replace('cs', 'cz')
+  .replace('el', 'gr')
+  .replace('uk', 'ukr')
+  .replace('ca', 'esCT')
+  .replace('ja', 'jp')
+
+const __texts = {
+  en: {
+    recommendation: { default: 'We recommend {size}', simplified: 'We recommend {size}' },
+    buttons: { vfr: 'Find your size', chart: 'Size chart' },
+  },
+  de: {
+    recommendation: { default: 'Wir empfehlen {size}', simplified: 'Wir empfehlen {size}' },
+    buttons: { vfr: 'Finden Sie Ihre Größe', chart: 'Größentabelle' },
+  },
+  it: {
+    recommendation: { default: 'Consigliamo {size}', simplified: 'Consigliamo {size}' },
+    buttons: { vfr: 'Trova la tua taglia', chart: 'Tabella taglie' },
+  },
+  nl: {
+    recommendation: { default: 'Wij raden aan {size}', simplified: 'Wij raden aan {size}' },
+    buttons: { vfr: 'Vind jouw maat', chart: 'Maattabel' },
+  },
+  es: {
+    recommendation: { default: 'Recomendamos {size}', simplified: 'Recomendamos {size}' },
+    buttons: { vfr: 'Encuentra tu talla', chart: 'Tabla de tallas' },
+  },
+  esCT: {
+    recommendation: { default: 'Recomendamos {size}', simplified: 'Recomendamos {size}' },
+    buttons: { vfr: 'Troba la teva talla', chart: 'Taula de talles' },
+  },
+  sv: {
+    recommendation: { default: 'Recomendamos {size}', simplified: 'Recomendamos {size}' },
+    buttons: { vfr: 'Hitta din storlek', chart: 'Storleksguide' },
+  },
+  fr: {
+    recommendation: { default: 'Nous recommandons {size}', simplified: 'Nous recommandons {size}' },
+    buttons: { vfr: 'Trouver ma taille', chart: 'Guide des tailles' },
+  },
+  pl: {
+    recommendation: { default: 'Polecamy {size}', simplified: 'Polecamy {size}' },
+    buttons: { vfr: 'Znajdź swój rozmiar', chart: 'Tabela rozmiarów' },
+  },
+  hr: {
+    recommendation: { default: 'Preporučujemo {size}', simplified: 'Preporučujemo {size}' },
+    buttons: { vfr: 'Pronađite svoju veličinu', chart: 'Vodič za veličine' },
+  },
+  gr: {
+    recommendation: { default: 'Σας προτείνουμε {size}', simplified: 'Σας προτείνουμε {size}' },
+    buttons: { vfr: 'Βρείτε το μέγεθός σας', chart: 'Οδηγός μεγεθών' },
+  },
+  hu: {
+    recommendation: { default: 'Ajánljuk {size}', simplified: 'Ajánljuk {size}' },
+    buttons: { vfr: 'A méretem', chart: 'Méretskála' },
+  },
+  ro: {
+    recommendation: { default: 'Recomandăm {size}', simplified: 'Recomandăm {size}' },
+    buttons: { vfr: 'Găsește-ți mărimea', chart: 'Tabel de mărimi' },
+  },
+  sk: {
+    recommendation: { default: 'Odporúčame {size}', simplified: 'Odporúčame {size}' },
+    buttons: { vfr: 'Zistiť svoju veľkosť', chart: 'Tabuľka veľkostí' },
+  },
+  ru: {
+    recommendation: { default: 'Мы рекомендуем {size}', simplified: 'Мы рекомендуем {size}' },
+    buttons: { vfr: 'Виртуальная примерочная', chart: 'Таблица размеров' },
+  },
+  cz: {
+    recommendation: { default: 'Doporučujeme {size}', simplified: 'Doporučujeme {size}' },
+    buttons: { vfr: 'Zjistit svou velikost', chart: 'Tabulka velikostí' },
+  },
+  ukr: {
+    recommendation: { default: 'Ми рекомендуємо {size}', simplified: 'Ми рекомендуємо {size}' },
+    buttons: { vfr: 'Дізнатись свій розмір', chart: 'Таблиця розмірів' },
+  },
+  pt: {
+    recommendation: { default: 'Nós recomendamos {size}', simplified: 'Nós recomendamos {size}' },
+    buttons: { vfr: 'Encontre o seu tamanho', chart: 'Guia de tamanhos' },
+  },
+  jp: {
+    recommendation: { default: '{size}をお勧めします', simplified: '{size}をお勧めします' },
+    buttons: { vfr: 'サイズをチェックしよう', chart: 'サイズチャート' },
+  },
+  tr: {
+    recommendation: { default: '{size} öneririz', simplified: '{size} öneririz' },
+    buttons: { vfr: 'Bedenini bul', chart: 'Beden tablosu' },
+  },
+}
+
+window.SizebayPrescript = () => ({
+  getPermalink() {
+    const permalink = `${window.location.href
+      .split('/product/')
+      .shift()
+      .replace('//staging.', '//www.')
+      .replace('//test.', '//www.')}/${document
+      .querySelector('div.container.product-detail')
+      ?.dataset?.pid.split(' ')
+      .shift()
+      .split('_')
+      .shift()}`
+    console.log('Sizebay Product Link ---> ' + permalink)
+    return permalink
+  },
+  getAnchor() {
+    return { web: '[data-attr="size"]', mobile: 'div.cc-sizeSelectorMobile-content-sizeGuide' }
+  },
+  getTenantId() {
+    return 2399
+  },
+  getButtons() {
+    return {
+      order: [
+        { name: 'vfr', text: __texts[lang].buttons.vfr },
+        { name: 'chart', text: __texts[lang].buttons.chart },
+      ],
+      position: innerWidth > 768 ? 'before' : 'append',
+      class: 'vfr__button--clean',
+    }
+  },
+  getLanguage() {
+    return lang
+  },
+  getRecommendationText() {
+    const isDesk = innerWidth > 768
+    const anchor = document.querySelector(
+      isDesk ? 'p.cc-intProductDetail-size-model:not(.hide)' : '.cc-intProductDetail-size-model.no-margin'
+    )
+      ? isDesk
+        ? 'p.cc-intProductDetail-size-model:not(.hide)'
+        : '.cc-intProductDetail-size-model.no-margin'
+      : isDesk
+      ? '.cc-intProductDetail-size-wrapper'
+      : '.cc-sizeSelectorMobile-content .cc-intProductDetail-size-wrapper'
+
+    return { ...__texts[lang].recommendation, anchor, order: anchor.includes('size-model') ? 'append' : 'prepend' }
+  },
+  getPageProductImg() {
+    let imgElement = document.querySelector('.productImageCarouselItem')
+    if (imgElement !== null) {
+      return encodeURIComponent(imgElement.src)
+    }
+  },
+  getEnableCustomIcons() {
+    return true
+  },
+  getSizesInStock() {
+    return [...document.querySelectorAll('.sizebay-js-desktop-size-buttons label:not(.size-button--unavailable)')]
+      .map((el) => el.id.split('sizebay-').pop().trim())
+      .filter((el) => !!el)
+  },
+  getCountryValue() {
+    return document.querySelector('[data-country-code]')?.dataset?.countryCode
+  },
+})
+
+const insertScript = (ref) => document.head.appendChild(Object.assign(document.createElement('script'), { src: ref }))
+
+const sizebayStyles = () => {
+  const linkElem = document.createElement('link')
+  linkElem.setAttribute('rel', 'stylesheet')
+  linkElem.setAttribute('type', 'text/css')
+  linkElem.setAttribute('href', `https://static.sizebay.technology/2399/styles/styles_v4.css`)
+  document.querySelector('body').appendChild(linkElem)
+}
+
+const sizebayImplantation = () => {
+  insertScript('https://vfr-v3-production.sizebay.technology/V4/implantation/index.js')
+  sizebayStyles()
+}
+
+function SizebayInit() {
+  sizebayImplantation()
+
+  const payload = {
+    permalink: SizebayPrescript().getPermalink(),
+    tenantId: SizebayPrescript().getTenantId(),
+    buttons: SizebayPrescript().getButtons(),
+    anchor: SizebayPrescript().getAnchor(),
+    lang: SizebayPrescript().getLanguage(),
+  }
+
+  const sizebayRender = () => window?.Sizebay?.Implantation(payload, eventsObject)
+
+  if (typeof window?.Sizebay?.Implantation !== 'function') {
+    window.addEventListener(
+      'sizebay:loaded',
+      () => !document.querySelectorAll('.vfr__container').length && sizebayRender()
+    )
+    return
+  }
+
+  sizebayRender()
+}
+
+setTimeout(function () {
+  if (document.querySelectorAll('body[data-action="pdp"]').length) {
+    SizebayInit()
+  }
+}, 1000)
